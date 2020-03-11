@@ -30,8 +30,6 @@
 #include "sysemu/sysemu.h"
 #include "hw/boards.h"
 
-
-
 static void led_irq_handler(void *opaque, int n, int level)
 {
     /* There should only be one IRQ for the LED */
@@ -40,26 +38,28 @@ static void led_irq_handler(void *opaque, int n, int level)
     /* Assume that the IRQ is only triggered if the LED has changed state.
      * If this is not correct, we may get multiple LED Offs or Ons in a row.
      */
-    switch (level) {
-        case 0:
-            printf("LED Off\n");
-            break;
-        case 1:
-            printf("LED On\n");
-            break;
+    switch (level)
+    {
+    case 0:
+        printf("LED Off\n");
+        break;
+    case 1:
+        printf("LED On\n");
+        break;
     }
 }
 
 static void stm32_f103c8_init(MachineState *machine)
 {
-    const char* kernel_filename = machine->kernel_filename;
+    const char *kernel_filename = machine->kernel_filename;
     qemu_irq *led_irq;
 
-    stm32_init(/*flash_size*/0x0001ffff,
-               /*ram_size*/0x00004fff,
+    stm32_init(/*flash_size*/ 0x0001ffff,
+               /*ram_size*/ 0x00004fff,
                kernel_filename,
                8000000,
-               32768);
+               32768,
+               "cortex-m3");
 
     DeviceState *gpio_a = DEVICE(object_resolve_path("/machine/stm32/gpio[a]", NULL));
     DeviceState *gpio_c = DEVICE(object_resolve_path("/machine/stm32/gpio[c]", NULL));
@@ -82,28 +82,27 @@ static void stm32_f103c8_init(MachineState *machine)
 
     /* Connect RS232 to UART 1 */
     stm32_uart_connect(
-            (Stm32Uart *)uart1,
-            serial_hds[0],
-            STM32_USART1_NO_REMAP);
-    
+        (Stm32Uart *)uart1,
+        serial_hds[0],
+        STM32_USART1_NO_REMAP);
+
     /* These additional UARTs have not been tested yet... */
     stm32_uart_connect(
-            (Stm32Uart *)uart2,
-            serial_hds[1],
-            STM32_USART2_NO_REMAP);
-    
+        (Stm32Uart *)uart2,
+        serial_hds[1],
+        STM32_USART2_NO_REMAP);
+
     stm32_uart_connect(
-            (Stm32Uart *)uart3,
-            serial_hds[2],
-            STM32_USART3_NO_REMAP);
- }
+        (Stm32Uart *)uart3,
+        serial_hds[2],
+        STM32_USART3_NO_REMAP);
+}
 
 static QEMUMachine stm32_f103c8_machine = {
     .name = "stm32-f103c8",
     .desc = "STM32F103C8 (Blue Pill) Dev Board",
     .init = stm32_f103c8_init,
 };
-
 
 static void stm32_f103c8_machine_init(void)
 {

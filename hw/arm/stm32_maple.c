@@ -30,19 +30,18 @@
 #include "sysemu/sysemu.h"
 #include "hw/boards.h"
 
-#define LOG(format, ...)    do { \
-        fprintf(stderr, format, ##__VA_ARGS__); \
-} while (0)
+#define LOG(format, ...)                                \
+        do                                              \
+        {                                               \
+                fprintf(stderr, format, ##__VA_ARGS__); \
+        } while (0)
 
-
-
-
-typedef struct {
+typedef struct
+{
         Stm32 *stm32;
         bool last_button_pressed;
         qemu_irq button_irq;
 } Stm32Maple;
-
 
 static void led_irq_handler(void *opaque, int n, int level)
 {
@@ -52,13 +51,14 @@ static void led_irq_handler(void *opaque, int n, int level)
         /* Assume that the IRQ is only triggered if the LED has changed state.
          * If this is not correct, we may get multiple LED Offs or Ons in a row.
          */
-        switch (level) {
-                case 0:
-                        printf("LED Off\n");
-                        break;
-                case 1:
-                        printf("LED On\n");
-                        break;
+        switch (level)
+        {
+        case 0:
+                printf("LED Off\n");
+                break;
+        case 1:
+                printf("LED On\n");
+                break;
         }
 }
 
@@ -70,26 +70,30 @@ static void led_err_irq_handler(void *opaque, int n, int level)
         /* Assume that the IRQ is only triggered if the LED has changed state.
          * If this is not correct, we may get multiple LED Offs or Ons in a row.
          */
-        switch (level) {
-                case 0:
-                        printf("ERR LED Off\n");
-                        break;
-                case 1:
-                        printf("ERR LED On\n");
-                        break;
+        switch (level)
+        {
+        case 0:
+                printf("ERR LED Off\n");
+                break;
+        case 1:
+                printf("ERR LED On\n");
+                break;
         }
 }
 
 static void stm32_maple_key_event(void *opaque, int keycode)
 {
-        Stm32Maple *s = (Stm32Maple *) opaque;
+        Stm32Maple *s = (Stm32Maple *)opaque;
         bool make;
         int core_keycode;
 
-        if ((keycode & 0x80) == 0) {
+        if ((keycode & 0x80) == 0)
+        {
                 make = true;
                 core_keycode = keycode;
-        } else {
+        }
+        else
+        {
                 make = false;
                 core_keycode = keycode & 0x7f;
         }
@@ -97,23 +101,27 @@ static void stm32_maple_key_event(void *opaque, int keycode)
         /* Responds when a "B" key press is received.
          * Inside the monitor, you can type "sendkey b"
          */
-        if (core_keycode == 0x30) {
-                if (make) {
-                        if (!s->last_button_pressed) {
+        if (core_keycode == 0x30)
+        {
+                if (make)
+                {
+                        if (!s->last_button_pressed)
+                        {
                                 qemu_irq_raise(s->button_irq);
                                 s->last_button_pressed = true;
                         }
-                } else {
-                        if (s->last_button_pressed) {
+                }
+                else
+                {
+                        if (s->last_button_pressed)
+                        {
                                 qemu_irq_lower(s->button_irq);
                                 s->last_button_pressed = false;
                         }
                 }
         }
         return;
-
 }
-
 
 static void stm32_maple_init(MachineState *machine)
 {
@@ -121,11 +129,10 @@ static void stm32_maple_init(MachineState *machine)
         qemu_irq *led_irq, *led_err_irq;
         Stm32Maple *s;
 
-        s = (Stm32Maple *) g_malloc0(sizeof(Stm32Maple));
+        s = (Stm32Maple *)g_malloc0(sizeof(Stm32Maple));
 
         /* flash, then ram */
-        stm32_init(0x0001ffff, 0x00004fff, kernel_filename, 8000000, 32768);
-
+        stm32_init(0x0001ffff, 0x00004fff, kernel_filename, 8000000, 32768, "cortex-m3");
 
         DeviceState *gpio_a = DEVICE(object_resolve_path("/machine/stm32/gpio[a]", NULL));
         DeviceState *gpio_c = DEVICE(object_resolve_path("/machine/stm32/gpio[c]", NULL));
@@ -152,20 +159,19 @@ static void stm32_maple_init(MachineState *machine)
         qemu_add_kbd_event_handler(stm32_maple_key_event, s);
 
         /* Connect RS232 to UART */
-        stm32_uart_connect((Stm32Uart *) uart1, 
-                        serial_hds[0], STM32_USART1_NO_REMAP);
+        stm32_uart_connect((Stm32Uart *)uart1,
+                           serial_hds[0], STM32_USART1_NO_REMAP);
 
         /* useful for debugging */
-        stm32_uart_connect((Stm32Uart *) uart2, 
-                        serial_hds[1], STM32_USART2_NO_REMAP);
+        stm32_uart_connect((Stm32Uart *)uart2,
+                           serial_hds[1], STM32_USART2_NO_REMAP);
 }
 
 static QEMUMachine stm32_maple_machine = {
-        .name = "stm32-maple",
-        .desc = "OPEN SOURCE HARDWARE MAPLE / ARDUINO LIKE DEVELOPMENT BOARD",
-        .init = stm32_maple_init,
+    .name = "stm32-maple",
+    .desc = "OPEN SOURCE HARDWARE MAPLE / ARDUINO LIKE DEVELOPMENT BOARD",
+    .init = stm32_maple_init,
 };
-
 
 static void stm32_maple_machine_init(void)
 {

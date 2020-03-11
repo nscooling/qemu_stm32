@@ -102,15 +102,14 @@ static void stm32_feabhas_init(MachineState *machine)
 {
     const char *kernel_filename = machine->kernel_filename;
     // qemu_irq *led_irq;
-    Stm32Feabhas *s;
+    Stm32Feabhas *s = (Stm32Feabhas *)g_malloc0(sizeof(Stm32Feabhas));
 
-    s = (Stm32Feabhas *)g_malloc0(sizeof(Stm32Feabhas));
-
-    stm32_init(/*flash_size*/ 0x0001ffff,
-               /*ram_size*/ 0x00004fff,
+    stm32_init(0x0001ffff, // flash_size
+               0x00004fff, // ram_size
                kernel_filename,
                8000000,
-               32768);
+               32768,
+               "cortex-m4");
 
     DeviceState *gpio_a = DEVICE(object_resolve_path("/machine/stm32/gpio[a]", NULL));
     DeviceState *gpio_c = DEVICE(object_resolve_path("/machine/stm32/gpio[c]", NULL));

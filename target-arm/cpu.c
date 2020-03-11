@@ -41,7 +41,7 @@ static void arm_cpu_set_pc(CPUState *cs, vaddr value)
 static bool arm_cpu_has_work(CPUState *cs)
 {
     return cs->interrupt_request &
-        (CPU_INTERRUPT_FIQ | CPU_INTERRUPT_HARD | CPU_INTERRUPT_EXITTB);
+           (CPU_INTERRUPT_FIQ | CPU_INTERRUPT_HARD | CPU_INTERRUPT_EXITTB);
 }
 
 static void cp_reg_reset(gpointer key, gpointer value, gpointer opaque)
@@ -50,11 +50,13 @@ static void cp_reg_reset(gpointer key, gpointer value, gpointer opaque)
     ARMCPRegInfo *ri = value;
     ARMCPU *cpu = opaque;
 
-    if (ri->type & ARM_CP_SPECIAL) {
+    if (ri->type & ARM_CP_SPECIAL)
+    {
         return;
     }
 
-    if (ri->resetfn) {
+    if (ri->resetfn)
+    {
         ri->resetfn(&cpu->env, ri);
         return;
     }
@@ -64,13 +66,17 @@ static void cp_reg_reset(gpointer key, gpointer value, gpointer opaque)
      * This is basically only used for fields in non-core coprocessors
      * (like the pxa2xx ones).
      */
-    if (!ri->fieldoffset) {
+    if (!ri->fieldoffset)
+    {
         return;
     }
 
-    if (cpreg_field_is_64bit(ri)) {
+    if (cpreg_field_is_64bit(ri))
+    {
         CPREG_FIELD64(&cpu->env, ri) = ri->resetvalue;
-    } else {
+    }
+    else
+    {
         CPREG_FIELD32(&cpu->env, ri) = ri->resetvalue;
     }
 }
@@ -91,11 +97,13 @@ static void arm_cpu_reset(CPUState *s)
     env->vfp.xregs[ARM_VFP_MVFR1] = cpu->mvfr1;
     env->vfp.xregs[ARM_VFP_MVFR2] = cpu->mvfr2;
 
-    if (arm_feature(env, ARM_FEATURE_IWMMXT)) {
+    if (arm_feature(env, ARM_FEATURE_IWMMXT))
+    {
         env->iwmmxt.cregs[ARM_IWMMXT_wCID] = 0x69051000 | 'Q';
     }
 
-    if (arm_feature(env, ARM_FEATURE_AARCH64)) {
+    if (arm_feature(env, ARM_FEATURE_AARCH64))
+    {
         /* 64 bit CPUs always start in 64 bit mode */
         env->aarch64 = 1;
 #if defined(CONFIG_USER_ONLY)
@@ -108,7 +116,9 @@ static void arm_cpu_reset(CPUState *s)
         env->pstate = PSTATE_MODE_EL1h;
         env->pc = cpu->rvbar;
 #endif
-    } else {
+    }
+    else
+    {
 #if defined(CONFIG_USER_ONLY)
         /* Userspace expects access to cp10 and cp11 for FP/Neon */
         env->cp15.c1_coproc = deposit64(env->cp15.c1_coproc, 20, 4, 0xf);
@@ -119,9 +129,12 @@ static void arm_cpu_reset(CPUState *s)
     env->uncached_cpsr = ARM_CPU_MODE_USR;
     /* For user mode we must enable access to coprocessors */
     env->vfp.xregs[ARM_VFP_FPEXC] = 1 << 30;
-    if (arm_feature(env, ARM_FEATURE_IWMMXT)) {
+    if (arm_feature(env, ARM_FEATURE_IWMMXT))
+    {
         env->cp15.c15_cpar = 3;
-    } else if (arm_feature(env, ARM_FEATURE_XSCALE)) {
+    }
+    else if (arm_feature(env, ARM_FEATURE_XSCALE))
+    {
         env->cp15.c15_cpar = 1;
     }
 #else
@@ -130,12 +143,14 @@ static void arm_cpu_reset(CPUState *s)
     env->daif = PSTATE_D | PSTATE_A | PSTATE_I | PSTATE_F;
     /* On ARMv7-M the CPSR_I is the value of the PRIMASK register, and is
        clear at reset.  Initial SP and PC are loaded from ROM.  */
-    if (IS_M(env)) {
+    if (IS_M(env))
+    {
         uint32_t pc;
         uint8_t *rom;
         env->daif &= ~PSTATE_I;
         rom = rom_ptr(0);
-        if (rom) {
+        if (rom)
+        {
             /* We should really use ldl_phys here, in case the guest
                modified flash and reset itself.  However images
                loaded via -kernel have not been copied yet, so load the
@@ -147,8 +162,9 @@ static void arm_cpu_reset(CPUState *s)
         }
     }
 
-    if (env->cp15.c1_sys & SCTLR_V) {
-            env->regs[15] = 0xFFFF0000;
+    if (env->cp15.c1_sys & SCTLR_V)
+    {
+        env->regs[15] = 0xFFFF0000;
     }
 
     env->vfp.xregs[ARM_VFP_FPEXC] = 0;
@@ -168,7 +184,8 @@ static void arm_cpu_reset(CPUState *s)
     tb_flush(env);
 
 #ifndef CONFIG_USER_ONLY
-    if (kvm_enabled()) {
+    if (kvm_enabled())
+    {
         kvm_arm_reset_vcpu(cpu);
     }
 #endif
@@ -180,18 +197,25 @@ static void arm_cpu_set_irq(void *opaque, int irq, int level)
     ARMCPU *cpu = opaque;
     CPUState *cs = CPU(cpu);
 
-    switch (irq) {
+    switch (irq)
+    {
     case ARM_CPU_IRQ:
-        if (level) {
+        if (level)
+        {
             cpu_interrupt(cs, CPU_INTERRUPT_HARD);
-        } else {
+        }
+        else
+        {
             cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
         }
         break;
     case ARM_CPU_FIQ:
-        if (level) {
+        if (level)
+        {
             cpu_interrupt(cs, CPU_INTERRUPT_FIQ);
-        } else {
+        }
+        else
+        {
             cpu_reset_interrupt(cs, CPU_INTERRUPT_FIQ);
         }
         break;
@@ -207,7 +231,8 @@ static void arm_cpu_kvm_set_irq(void *opaque, int irq, int level)
     CPUState *cs = CPU(cpu);
     int kvm_irq = KVM_ARM_IRQ_TYPE_CPU << KVM_ARM_IRQ_TYPE_SHIFT;
 
-    switch (irq) {
+    switch (irq)
+    {
     case ARM_CPU_IRQ:
         kvm_irq |= KVM_ARM_IRQ_CPU_IRQ;
         break;
@@ -241,16 +266,19 @@ static void arm_cpu_initfn(Object *obj)
 
 #ifndef CONFIG_USER_ONLY
     /* Our inbound IRQ and FIQ lines */
-    if (kvm_enabled()) {
+    if (kvm_enabled())
+    {
         qdev_init_gpio_in(DEVICE(cpu), arm_cpu_kvm_set_irq, 2);
-    } else {
+    }
+    else
+    {
         qdev_init_gpio_in(DEVICE(cpu), arm_cpu_set_irq, 2);
     }
 
     cpu->gt_timer[GTIMER_PHYS] = timer_new(QEMU_CLOCK_VIRTUAL, GTIMER_SCALE,
-                                                arm_gt_ptimer_cb, cpu);
+                                           arm_gt_ptimer_cb, cpu);
     cpu->gt_timer[GTIMER_VIRT] = timer_new(QEMU_CLOCK_VIRTUAL, GTIMER_SCALE,
-                                                arm_gt_vtimer_cb, cpu);
+                                           arm_gt_vtimer_cb, cpu);
     qdev_init_gpio_out(DEVICE(cpu), cpu->gt_timer_outputs,
                        ARRAY_SIZE(cpu->gt_timer_outputs));
 #endif
@@ -263,37 +291,41 @@ static void arm_cpu_initfn(Object *obj)
     cpu->psci_version = 1; /* By default assume PSCI v0.1 */
     cpu->kvm_target = QEMU_KVM_ARM_TARGET_NONE;
 
-    if (tcg_enabled() && !inited) {
+    if (tcg_enabled() && !inited)
+    {
         inited = true;
         arm_translate_init();
     }
 }
 
 static Property arm_cpu_reset_cbar_property =
-            DEFINE_PROP_UINT64("reset-cbar", ARMCPU, reset_cbar, 0);
+    DEFINE_PROP_UINT64("reset-cbar", ARMCPU, reset_cbar, 0);
 
 static Property arm_cpu_reset_hivecs_property =
-            DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
+    DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
 
 static Property arm_cpu_rvbar_property =
-            DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
+    DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
 
 static void arm_cpu_post_init(Object *obj)
 {
     ARMCPU *cpu = ARM_CPU(obj);
 
     if (arm_feature(&cpu->env, ARM_FEATURE_CBAR) ||
-        arm_feature(&cpu->env, ARM_FEATURE_CBAR_RO)) {
+        arm_feature(&cpu->env, ARM_FEATURE_CBAR_RO))
+    {
         qdev_property_add_static(DEVICE(obj), &arm_cpu_reset_cbar_property,
                                  &error_abort);
     }
 
-    if (!arm_feature(&cpu->env, ARM_FEATURE_M)) {
+    if (!arm_feature(&cpu->env, ARM_FEATURE_M))
+    {
         qdev_property_add_static(DEVICE(obj), &arm_cpu_reset_hivecs_property,
                                  &error_abort);
     }
 
-    if (arm_feature(&cpu->env, ARM_FEATURE_AARCH64)) {
+    if (arm_feature(&cpu->env, ARM_FEATURE_AARCH64))
+    {
         qdev_property_add_static(DEVICE(obj), &arm_cpu_rvbar_property,
                                  &error_abort);
     }
@@ -313,57 +345,73 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
     CPUARMState *env = &cpu->env;
 
     /* Some features automatically imply others: */
-    if (arm_feature(env, ARM_FEATURE_V8)) {
+    if (arm_feature(env, ARM_FEATURE_V8))
+    {
         set_feature(env, ARM_FEATURE_V7);
         set_feature(env, ARM_FEATURE_ARM_DIV);
         set_feature(env, ARM_FEATURE_LPAE);
     }
-    if (arm_feature(env, ARM_FEATURE_V7)) {
+    if (arm_feature(env, ARM_FEATURE_V7))
+    {
         set_feature(env, ARM_FEATURE_VAPA);
         set_feature(env, ARM_FEATURE_THUMB2);
         set_feature(env, ARM_FEATURE_MPIDR);
-        if (!arm_feature(env, ARM_FEATURE_M)) {
+        if (!arm_feature(env, ARM_FEATURE_M))
+        {
             set_feature(env, ARM_FEATURE_V6K);
-        } else {
+        }
+        else
+        {
             set_feature(env, ARM_FEATURE_V6);
         }
     }
-    if (arm_feature(env, ARM_FEATURE_V6K)) {
+    if (arm_feature(env, ARM_FEATURE_V6K))
+    {
         set_feature(env, ARM_FEATURE_V6);
         set_feature(env, ARM_FEATURE_MVFR);
     }
-    if (arm_feature(env, ARM_FEATURE_V6)) {
+    if (arm_feature(env, ARM_FEATURE_V6))
+    {
         set_feature(env, ARM_FEATURE_V5);
-        if (!arm_feature(env, ARM_FEATURE_M)) {
+        if (!arm_feature(env, ARM_FEATURE_M))
+        {
             set_feature(env, ARM_FEATURE_AUXCR);
         }
     }
-    if (arm_feature(env, ARM_FEATURE_V5)) {
+    if (arm_feature(env, ARM_FEATURE_V5))
+    {
         set_feature(env, ARM_FEATURE_V4T);
     }
-    if (arm_feature(env, ARM_FEATURE_M)) {
+    if (arm_feature(env, ARM_FEATURE_M))
+    {
         set_feature(env, ARM_FEATURE_THUMB_DIV);
     }
-    if (arm_feature(env, ARM_FEATURE_ARM_DIV)) {
+    if (arm_feature(env, ARM_FEATURE_ARM_DIV))
+    {
         set_feature(env, ARM_FEATURE_THUMB_DIV);
     }
-    if (arm_feature(env, ARM_FEATURE_VFP4)) {
+    if (arm_feature(env, ARM_FEATURE_VFP4))
+    {
         set_feature(env, ARM_FEATURE_VFP3);
         set_feature(env, ARM_FEATURE_VFP_FP16);
     }
-    if (arm_feature(env, ARM_FEATURE_VFP3)) {
+    if (arm_feature(env, ARM_FEATURE_VFP3))
+    {
         set_feature(env, ARM_FEATURE_VFP);
     }
-    if (arm_feature(env, ARM_FEATURE_LPAE)) {
+    if (arm_feature(env, ARM_FEATURE_LPAE))
+    {
         set_feature(env, ARM_FEATURE_V7MP);
         set_feature(env, ARM_FEATURE_PXN);
     }
-    if (arm_feature(env, ARM_FEATURE_CBAR_RO)) {
+    if (arm_feature(env, ARM_FEATURE_CBAR_RO))
+    {
         set_feature(env, ARM_FEATURE_CBAR);
     }
 
-    if (cpu->reset_hivecs) {
-            cpu->reset_sctlr |= (1 << 13);
+    if (cpu->reset_hivecs)
+    {
+        cpu->reset_sctlr |= (1 << 13);
     }
 
     register_cp_regs_for_features(cpu);
@@ -382,7 +430,8 @@ static ObjectClass *arm_cpu_class_by_name(const char *cpu_model)
     ObjectClass *oc;
     char *typename;
 
-    if (!cpu_model) {
+    if (!cpu_model)
+    {
         return NULL;
     }
 
@@ -390,7 +439,8 @@ static ObjectClass *arm_cpu_class_by_name(const char *cpu_model)
     oc = object_class_by_name(typename);
     g_free(typename);
     if (!oc || !object_class_dynamic_cast(oc, TYPE_ARM_CPU) ||
-        object_class_is_abstract(oc)) {
+        object_class_is_abstract(oc))
+    {
         return NULL;
     }
     return oc;
@@ -445,11 +495,7 @@ static void arm1026_initfn(Object *obj)
     {
         /* The 1026 had an IFAR at c6,c0,0,1 rather than the ARMv6 c6,c0,0,2 */
         ARMCPRegInfo ifar = {
-            .name = "IFAR", .cp = 15, .crn = 6, .crm = 0, .opc1 = 0, .opc2 = 1,
-            .access = PL1_RW,
-            .fieldoffset = offsetofhigh32(CPUARMState, cp15.far_el1),
-            .resetvalue = 0
-        };
+            .name = "IFAR", .cp = 15, .crn = 6, .crm = 0, .opc1 = 0, .opc2 = 1, .access = PL1_RW, .fieldoffset = offsetofhigh32(CPUARMState, cp15.far_el1), .resetvalue = 0};
         define_one_arm_cp_reg(cpu, &ifar);
     }
 }
@@ -594,6 +640,15 @@ static void cortex_m3_initfn(Object *obj)
     cpu->midr = 0x410fc231;
 }
 
+static void cortex_m4_initfn(Object *obj)
+{
+    ARMCPU *cpu = ARM_CPU(obj);
+    set_feature(&cpu->env, ARM_FEATURE_V7);
+    set_feature(&cpu->env, ARM_FEATURE_M);
+    // set_feature(&cpu->env, ARM_FEATURE_THUMB_DSP);
+    cpu->midr = 0x410fc240; /* r0p0 */
+}
+
 static void arm_v7m_class_init(ObjectClass *oc, void *data)
 {
 #ifndef CONFIG_USER_ONLY
@@ -604,12 +659,9 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
 }
 
 static const ARMCPRegInfo cortexa8_cp_reginfo[] = {
-    { .name = "L2LOCKDOWN", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 0,
-      .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    { .name = "L2AUXCR", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 2,
-      .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    REGINFO_SENTINEL
-};
+    {.name = "L2LOCKDOWN", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 0, .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0},
+    {.name = "L2AUXCR", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 2, .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0},
+    REGINFO_SENTINEL};
 
 static void cortex_a8_initfn(Object *obj)
 {
@@ -652,30 +704,17 @@ static const ARMCPRegInfo cortexa9_cp_reginfo[] = {
     /* power_control should be set to maximum latency. Again,
      * default to 0 and set by private hook
      */
-    { .name = "A9_PWRCTL", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 0,
-      .access = PL1_RW, .resetvalue = 0,
-      .fieldoffset = offsetof(CPUARMState, cp15.c15_power_control) },
-    { .name = "A9_DIAG", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 1,
-      .access = PL1_RW, .resetvalue = 0,
-      .fieldoffset = offsetof(CPUARMState, cp15.c15_diagnostic) },
-    { .name = "A9_PWRDIAG", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 2,
-      .access = PL1_RW, .resetvalue = 0,
-      .fieldoffset = offsetof(CPUARMState, cp15.c15_power_diagnostic) },
-    { .name = "NEONBUSY", .cp = 15, .crn = 15, .crm = 1, .opc1 = 0, .opc2 = 0,
-      .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST },
+    {.name = "A9_PWRCTL", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 0, .access = PL1_RW, .resetvalue = 0, .fieldoffset = offsetof(CPUARMState, cp15.c15_power_control)},
+    {.name = "A9_DIAG", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 1, .access = PL1_RW, .resetvalue = 0, .fieldoffset = offsetof(CPUARMState, cp15.c15_diagnostic)},
+    {.name = "A9_PWRDIAG", .cp = 15, .crn = 15, .crm = 0, .opc1 = 0, .opc2 = 2, .access = PL1_RW, .resetvalue = 0, .fieldoffset = offsetof(CPUARMState, cp15.c15_power_diagnostic)},
+    {.name = "NEONBUSY", .cp = 15, .crn = 15, .crm = 1, .opc1 = 0, .opc2 = 0, .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST},
     /* TLB lockdown control */
-    { .name = "TLB_LOCKR", .cp = 15, .crn = 15, .crm = 4, .opc1 = 5, .opc2 = 2,
-      .access = PL1_W, .resetvalue = 0, .type = ARM_CP_NOP },
-    { .name = "TLB_LOCKW", .cp = 15, .crn = 15, .crm = 4, .opc1 = 5, .opc2 = 4,
-      .access = PL1_W, .resetvalue = 0, .type = ARM_CP_NOP },
-    { .name = "TLB_VA", .cp = 15, .crn = 15, .crm = 5, .opc1 = 5, .opc2 = 2,
-      .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST },
-    { .name = "TLB_PA", .cp = 15, .crn = 15, .crm = 6, .opc1 = 5, .opc2 = 2,
-      .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST },
-    { .name = "TLB_ATTR", .cp = 15, .crn = 15, .crm = 7, .opc1 = 5, .opc2 = 2,
-      .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST },
-    REGINFO_SENTINEL
-};
+    {.name = "TLB_LOCKR", .cp = 15, .crn = 15, .crm = 4, .opc1 = 5, .opc2 = 2, .access = PL1_W, .resetvalue = 0, .type = ARM_CP_NOP},
+    {.name = "TLB_LOCKW", .cp = 15, .crn = 15, .crm = 4, .opc1 = 5, .opc2 = 4, .access = PL1_W, .resetvalue = 0, .type = ARM_CP_NOP},
+    {.name = "TLB_VA", .cp = 15, .crn = 15, .crm = 5, .opc1 = 5, .opc2 = 2, .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST},
+    {.name = "TLB_PA", .cp = 15, .crn = 15, .crm = 6, .opc1 = 5, .opc2 = 2, .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST},
+    {.name = "TLB_ATTR", .cp = 15, .crn = 15, .crm = 7, .opc1 = 5, .opc2 = 2, .access = PL1_RW, .resetvalue = 0, .type = ARM_CP_CONST},
+    REGINFO_SENTINEL};
 
 static void cortex_a9_initfn(Object *obj)
 {
@@ -730,14 +769,21 @@ static uint64_t a15_l2ctlr_read(CPUARMState *env, const ARMCPRegInfo *ri)
 
 static const ARMCPRegInfo cortexa15_cp_reginfo[] = {
 #ifndef CONFIG_USER_ONLY
-    { .name = "L2CTLR", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 2,
-      .access = PL1_RW, .resetvalue = 0, .readfn = a15_l2ctlr_read,
-      .writefn = arm_cp_write_ignore, },
+    {
+        .name = "L2CTLR",
+        .cp = 15,
+        .crn = 9,
+        .crm = 0,
+        .opc1 = 1,
+        .opc2 = 2,
+        .access = PL1_RW,
+        .resetvalue = 0,
+        .readfn = a15_l2ctlr_read,
+        .writefn = arm_cp_write_ignore,
+    },
 #endif
-    { .name = "L2ECTLR", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 3,
-      .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    REGINFO_SENTINEL
-};
+    {.name = "L2ECTLR", .cp = 15, .crn = 9, .crm = 0, .opc1 = 1, .opc2 = 3, .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0},
+    REGINFO_SENTINEL};
 
 static void cortex_a15_initfn(Object *obj)
 {
@@ -967,7 +1013,8 @@ static void arm_any_initfn(Object *obj)
 
 #endif /* !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64) */
 
-typedef struct ARMCPUInfo {
+typedef struct ARMCPUInfo
+{
     const char *name;
     void (*initfn)(Object *obj);
     void (*class_init)(ObjectClass *oc, void *data);
@@ -975,50 +1022,48 @@ typedef struct ARMCPUInfo {
 
 static const ARMCPUInfo arm_cpus[] = {
 #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
-    { .name = "arm926",      .initfn = arm926_initfn },
-    { .name = "arm946",      .initfn = arm946_initfn },
-    { .name = "arm1026",     .initfn = arm1026_initfn },
+    {.name = "arm926", .initfn = arm926_initfn},
+    {.name = "arm946", .initfn = arm946_initfn},
+    {.name = "arm1026", .initfn = arm1026_initfn},
     /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
      * older core than plain "arm1136". In particular this does not
      * have the v6K features.
      */
-    { .name = "arm1136-r2",  .initfn = arm1136_r2_initfn },
-    { .name = "arm1136",     .initfn = arm1136_initfn },
-    { .name = "arm1176",     .initfn = arm1176_initfn },
-    { .name = "arm11mpcore", .initfn = arm11mpcore_initfn },
-    { .name = "cortex-m3",   .initfn = cortex_m3_initfn,
-                             .class_init = arm_v7m_class_init },
-    { .name = "cortex-a8",   .initfn = cortex_a8_initfn },
-    { .name = "cortex-a9",   .initfn = cortex_a9_initfn },
-    { .name = "cortex-a15",  .initfn = cortex_a15_initfn },
-    { .name = "ti925t",      .initfn = ti925t_initfn },
-    { .name = "sa1100",      .initfn = sa1100_initfn },
-    { .name = "sa1110",      .initfn = sa1110_initfn },
-    { .name = "pxa250",      .initfn = pxa250_initfn },
-    { .name = "pxa255",      .initfn = pxa255_initfn },
-    { .name = "pxa260",      .initfn = pxa260_initfn },
-    { .name = "pxa261",      .initfn = pxa261_initfn },
-    { .name = "pxa262",      .initfn = pxa262_initfn },
+    {.name = "arm1136-r2", .initfn = arm1136_r2_initfn},
+    {.name = "arm1136", .initfn = arm1136_initfn},
+    {.name = "arm1176", .initfn = arm1176_initfn},
+    {.name = "arm11mpcore", .initfn = arm11mpcore_initfn},
+    {.name = "cortex-m3", .initfn = cortex_m3_initfn, .class_init = arm_v7m_class_init},
+    {.name = "cortex-m4", .initfn = cortex_m4_initfn, .class_init = arm_v7m_class_init},
+    {.name = "cortex-a8", .initfn = cortex_a8_initfn},
+    {.name = "cortex-a9", .initfn = cortex_a9_initfn},
+    {.name = "cortex-a15", .initfn = cortex_a15_initfn},
+    {.name = "ti925t", .initfn = ti925t_initfn},
+    {.name = "sa1100", .initfn = sa1100_initfn},
+    {.name = "sa1110", .initfn = sa1110_initfn},
+    {.name = "pxa250", .initfn = pxa250_initfn},
+    {.name = "pxa255", .initfn = pxa255_initfn},
+    {.name = "pxa260", .initfn = pxa260_initfn},
+    {.name = "pxa261", .initfn = pxa261_initfn},
+    {.name = "pxa262", .initfn = pxa262_initfn},
     /* "pxa270" is an alias for "pxa270-a0" */
-    { .name = "pxa270",      .initfn = pxa270a0_initfn },
-    { .name = "pxa270-a0",   .initfn = pxa270a0_initfn },
-    { .name = "pxa270-a1",   .initfn = pxa270a1_initfn },
-    { .name = "pxa270-b0",   .initfn = pxa270b0_initfn },
-    { .name = "pxa270-b1",   .initfn = pxa270b1_initfn },
-    { .name = "pxa270-c0",   .initfn = pxa270c0_initfn },
-    { .name = "pxa270-c5",   .initfn = pxa270c5_initfn },
+    {.name = "pxa270", .initfn = pxa270a0_initfn},
+    {.name = "pxa270-a0", .initfn = pxa270a0_initfn},
+    {.name = "pxa270-a1", .initfn = pxa270a1_initfn},
+    {.name = "pxa270-b0", .initfn = pxa270b0_initfn},
+    {.name = "pxa270-b1", .initfn = pxa270b1_initfn},
+    {.name = "pxa270-c0", .initfn = pxa270c0_initfn},
+    {.name = "pxa270-c5", .initfn = pxa270c5_initfn},
 #ifdef CONFIG_USER_ONLY
-    { .name = "any",         .initfn = arm_any_initfn },
+    {.name = "any", .initfn = arm_any_initfn},
 #endif
 #endif
-    { .name = NULL }
-};
+    {.name = NULL}};
 
 static Property arm_cpu_properties[] = {
     DEFINE_PROP_BOOL("start-powered-off", ARMCPU, start_powered_off, false),
     DEFINE_PROP_UINT32("midr", ARMCPU, midr, 0),
-    DEFINE_PROP_END_OF_LIST()
-};
+    DEFINE_PROP_END_OF_LIST()};
 
 static void arm_cpu_class_init(ObjectClass *oc, void *data)
 {
@@ -1083,7 +1128,8 @@ static void arm_cpu_register_types(void)
 
     type_register_static(&arm_cpu_type_info);
 
-    while (info->name) {
+    while (info->name)
+    {
         cpu_register(info);
         info++;
     }

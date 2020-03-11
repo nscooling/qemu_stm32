@@ -36,7 +36,7 @@ typedef struct
     qemu_irq button_irq;
 } Stm32P103;
 
-static void led1_irq_handler(void *opaque, int n, int level)
+static void led_irq_handler(void *opaque, int n, int level)
 {
     /* There should only be one IRQ for the LED */
     assert(n == 0);
@@ -51,25 +51,6 @@ static void led1_irq_handler(void *opaque, int n, int level)
         break;
     case 1:
         printf("LED 1 On\n");
-        break;
-    }
-}
-
-static void led2_irq_handler(void *opaque, int n, int level)
-{
-    /* There should only be one IRQ for the LED */
-    assert(n == 0);
-
-    /* Assume that the IRQ is only triggered if the LED has changed state.
-     * If this is not correct, we may get multiple LED Offs or Ons in a row.
-     */
-    switch (level)
-    {
-    case 0:
-        printf("LED 2 Off\n");
-        break;
-    case 1:
-        printf("LED 2 On\n");
         break;
     }
 }
@@ -128,7 +109,8 @@ static void stm32_p103_init(MachineState *machine)
                /*ram_size*/ 0x00004fff,
                kernel_filename,
                8000000,
-               32768);
+               32768,
+               "cortex-m3");
 
     DeviceState *gpio_a = DEVICE(object_resolve_path("/machine/stm32/gpio[a]", NULL));
     DeviceState *gpio_c = DEVICE(object_resolve_path("/machine/stm32/gpio[c]", NULL));
@@ -142,11 +124,8 @@ static void stm32_p103_init(MachineState *machine)
     assert(uart3);
 
     /* Connect LED to GPIO C pin 12 */
-    qemu_irq *led1_irq = qemu_allocate_irqs(led1_irq_handler, NULL, 1);
+    qemu_irq *led1_irq = qemu_allocate_irqs(led_irq_handler, NULL, 1);
     qdev_connect_gpio_out(gpio_c, 12, led1_irq[0]);
-    /* Connect LED to GPIO C pin 13 */
-    qemu_irq *led2_irq = qemu_allocate_irqs(led2_irq_handler, NULL, 1);
-    qdev_connect_gpio_out(gpio_c, 13, led2_irq[0]);
 
     /* Connect button to GPIO A pin 0 */
     s->button_irq = qdev_get_gpio_in(gpio_a, 0);
